@@ -8,6 +8,7 @@
 #include "Parser.h"
 #include "MYOVERLAPPED.h"
 #include "LanClientSession.h"
+#include "Assert.h"
 #pragma comment(lib,"Winmm.lib")
 #pragma comment(lib,"LoggerMT.lib")
 #pragma comment(lib, "ws2_32.lib")
