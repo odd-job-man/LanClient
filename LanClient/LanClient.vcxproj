@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a26910f9-9013-406b-8233-81d0efdb42c4}</ProjectGuid>
+    <ProjectGuid>{feb6d2d0-411a-4869-8cc6-784fb6dbd743}</ProjectGuid>
     <RootNamespace>LanClient</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -68,6 +68,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="CommonProperty.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -130,21 +131,35 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CAddressTranslator.h" />
-    <ClInclude Include="CLockFreeQueue.h" />
-    <ClInclude Include="CLockFreeStack.h" />
-    <ClInclude Include="CTlsObjectPool.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\Assert.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\DataStructure\CAddressTranslator.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\DataStructure\CLinkedList.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\DataStructure\CLockFreeObjectPool.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\DataStructure\CLockFreeQueue.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\DataStructure\CLockFreeStack.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\DataStructure\CTlsObjectPool.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\Job\MyJob.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\Logger\Logger.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\Monitor\HMonitor.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\Monitor\Monitorable.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\MYOVERLAPPED.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\NetWork\Packet.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\NetWork\RingBuffer.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\Parser\Parser.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\UpdateAndTimer\Timer.h" />
+    <ClInclude Include="..\..\ServerCommon\ServerCommon\UpdateAndTimer\UpdateBase.h" />
     <ClInclude Include="LanClient.h" />
-    <ClInclude Include="Logger.h" />
-    <ClInclude Include="MYOVERLAPPED.h" />
-    <ClInclude Include="Packet.h" />
-    <ClInclude Include="Parser.h" />
-    <ClInclude Include="RingBuffer.h" />
-    <ClInclude Include="Session.h" />
+    <ClInclude Include="LanClientSession.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\ServerCommon\ServerCommon\DataStructure\CLinkedList.cpp" />
+    <ClCompile Include="..\..\ServerCommon\ServerCommon\Monitor\HMonitor.cpp" />
+    <ClCompile Include="..\..\ServerCommon\ServerCommon\NetWork\RingBuffer.cpp" />
+    <ClCompile Include="..\..\ServerCommon\ServerCommon\UpdateAndTimer\Timer.cpp" />
+    <ClCompile Include="..\..\ServerCommon\ServerCommon\UpdateAndTimer\UpdateBase.cpp" />
     <ClCompile Include="LanClient.cpp" />
-    <ClCompile Include="RingBuffer.cpp" />
+    <ClCompile Include="LanClientSession.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

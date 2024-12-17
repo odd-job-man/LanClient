@@ -1,16 +1,14 @@
 #pragma once
-#pragma once
-#include <WinSock2.h>
-#include <MSWSock.h>
 #include <windows.h>
 
-struct Session;
+struct LanClientSession;
 
 class SmartPacket;
 class Packet;
-struct Session;
-#include "CLockFreeStack.h"
+struct LanClientSession;
 #include "CLockFreeQueue.h"
+#include "CLockFreeStack.h"
+#include <MSWSock.h>
 
 class LanClient
 {
@@ -27,15 +25,15 @@ public:
 	virtual void OnConnectFailed(ULONGLONG id) = 0;
 	void Disconnect(ULONGLONG id);
 protected:
-	bool ConnectPost(Session* pSession);
-	bool DisconnectExPost(Session* pSession);
-	BOOL SendPost(Session* pSession);
-	BOOL RecvPost(Session* pSession);
-	void ReleaseSession(Session* pSession);
-	void RecvProc(Session* pSession, int numberOfBytesTransferred);
-	void SendProc(Session* pSession, DWORD dwNumberOfBytesTransferred);
-	void ConnectProc(Session* pSession);
-	void DisconnectProc(Session* pSession);
+	bool ConnectPost(LanClientSession* pSession);
+	bool DisconnectExPost(LanClientSession* pSession);
+	BOOL SendPost(LanClientSession* pSession);
+	BOOL RecvPost(LanClientSession* pSession);
+	void ReleaseSession(LanClientSession* pSession);
+	void RecvProc(LanClientSession* pSession, int numberOfBytesTransferred);
+	void SendProc(LanClientSession* pSession, DWORD dwNumberOfBytesTransferred);
+	void ConnectProc(LanClientSession* pSession);
+	void DisconnectProc(LanClientSession* pSession);
 	friend class Packet;
 	static unsigned __stdcall IOCPWorkerThread(LPVOID arg);
 	static bool SetLinger(SOCKET sock);
@@ -48,7 +46,7 @@ protected:
 	LONG lSessionNum_ = 0;
 	LONG maxSession_;
 	ULONGLONG ullIdCounter_ = 0;
-	Session* pSessionArr_;
+	LanClientSession* pSessionArr_;
 	HANDLE* hIOCPWorkerThreadArr_;
 	CLockFreeStack<short> DisconnectStack_;
 	HANDLE hcp_;
@@ -60,4 +58,4 @@ protected:
 #include "Packet.h"
 #include "RingBuffer.h"
 #include "MYOVERLAPPED.h"
-#include "Session.h"
+#include "LanSession.h"

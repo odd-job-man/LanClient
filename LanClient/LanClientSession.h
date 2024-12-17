@@ -1,6 +1,5 @@
 #pragma once
-
-struct Session
+struct LanClientSession
 {
 	static constexpr LONG RELEASE_FLAG = 0x80000000;
 	SOCKET sock_ = INVALID_SOCKET;
@@ -17,21 +16,13 @@ struct Session
 	BOOL bSendingInProgress_;
 	Packet* pSendPacketArr_[50];
 	RingBuffer recvRB_;
-	BOOL Init(ULONGLONG ullClientID, SHORT shIdx)
-	{
-		bSendingInProgress_ = FALSE;
-		InterlockedExchange(&id_, ((ullClientID << 16) ^ shIdx));
-		lastRecvTime = GetTickCount64();
-		bDisconnectCalled_ = FALSE;
-		lSendBufNum_ = 0;
-		recvRB_.ClearBuffer();
-		return TRUE;
-	}
+	BOOL Init(ULONGLONG ullClientID, SHORT shIdx);
 
-
-	Session()
-		:IoCnt_{ Session::RELEASE_FLAG | 0 }
+#pragma warning(disable : 26495)
+	LanClientSession()
+		:IoCnt_{ LanClientSession::RELEASE_FLAG | 0 }
 	{}
+#pragma warning(default: 26495)
 
 	__forceinline static short GET_SESSION_INDEX(ULONGLONG id)
 	{
@@ -39,4 +30,3 @@ struct Session
 	}
 
 };
-

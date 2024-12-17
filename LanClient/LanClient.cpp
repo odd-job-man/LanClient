@@ -1,9 +1,14 @@
+#include <WinSock2.h>
+#include <MSWSock.h>
 #include <WS2tcpip.h>
 #include <locale>
+#include <process.h>
 #include "LanClient.h"
 #include "Logger.h"
 #include "Parser.h"
-#include <process.h>
+#include "MYOVERLAPPED.h"
+#include "LanClientSession.h"
+#pragma comment(lib,"Winmm.lib")
 #pragma comment(lib,"LoggerMT.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib,"TextParser.lib")
@@ -82,14 +87,14 @@ LanClient::LanClient()
 	if (!CAddressTranslator::CheckMetaCntBits())
 		__debugbreak();
 
-	pSessionArr_ = new Session[maxSession_];
+	pSessionArr_ = new LanClientSession[maxSession_];
 	for (int i = maxSession_ - 1; i >= 0; --i)
 		DisconnectStack_.Push(i);
 
 	// 소켓미리 생성
 	for (int i = 0; i < maxSession_; ++i)
 	{
-		Session* pSession = pSessionArr_ + i;
+		LanClientSession* pSession = pSessionArr_ + i;
 		pSession->sock_ = socket(AF_INET, SOCK_STREAM, 0);
 		if (pSession->sock_ == INVALID_SOCKET)
 			__debugbreak();
@@ -130,7 +135,7 @@ void LanClient::InitialConnect()
 		if (opt.has_value() == false)
 			return;
 
-		Session* pSession = pSessionArr_ + opt.value();
+		LanClientSession* pSession = pSessionArr_ + opt.value();
 
 		ConnectPost(pSession);
 	}
@@ -138,11 +143,11 @@ void LanClient::InitialConnect()
 
 void LanClient::SendPacket(ULONGLONG id, SmartPacket& sendPacket)
 {
-	Session* pSession = pSessionArr_ + Session::GET_SESSION_INDEX(id);
+	LanClientSession* pSession = pSessionArr_ + LanClientSession::GET_SESSION_INDEX(id);
 	long IoCnt = InterlockedIncrement(&pSession->IoCnt_);
 
 	// 이미 RELEASE 진행중이거나 RELEASE된 경우
-	if ((IoCnt & Session::RELEASE_FLAG) == Session::RELEASE_FLAG)
+	if ((IoCnt & LanClientSession::RELEASE_FLAG) == LanClientSession::RELEASE_FLAG)
 	{
 		if (InterlockedDecrement(&pSession->IoCnt_) == 0)
 			ReleaseSession(pSession);
@@ -168,11 +173,11 @@ void LanClient::SendPacket(ULONGLONG id, SmartPacket& sendPacket)
 
 void LanClient::SendPacket_ALREADY_ENCODED(ULONGLONG id, Packet* pPacket)
 {
-	Session* pSession = pSessionArr_ + Session::GET_SESSION_INDEX(id);
+	LanClientSession* pSession = pSessionArr_ + LanClientSession::GET_SESSION_INDEX(id);
 	long IoCnt = InterlockedIncrement(&pSession->IoCnt_);
 
 	// 이미 RELEASE 진행중이거나 RELEASE된 경우
-	if ((IoCnt & Session::RELEASE_FLAG) == Session::RELEASE_FLAG)
+	if ((IoCnt & LanClientSession::RELEASE_FLAG) == LanClientSession::RELEASE_FLAG)
 	{
 		if (InterlockedDecrement(&pSession->IoCnt_) == 0)
 			ReleaseSession(pSession);
@@ -196,11 +201,11 @@ void LanClient::SendPacket_ALREADY_ENCODED(ULONGLONG id, Packet* pPacket)
 
 void LanClient::Disconnect(ULONGLONG id)
 {
-	Session* pSession = pSessionArr_ + Session::GET_SESSION_INDEX(id);
+	LanClientSession* pSession = pSessionArr_ + LanClientSession::GET_SESSION_INDEX(id);
 	long IoCnt = InterlockedIncrement(&pSession->IoCnt_);
 
 	// RELEASE진행중 혹은 진행완료
-	if ((IoCnt & Session::RELEASE_FLAG) == Session::RELEASE_FLAG)
+	if ((IoCnt & LanClientSession::RELEASE_FLAG) == LanClientSession::RELEASE_FLAG)
 	{
 		if (InterlockedDecrement(&pSession->IoCnt_) == 0)
 			ReleaseSession(pSession);
@@ -233,7 +238,7 @@ void LanClient::Disconnect(ULONGLONG id)
 }
 
 #pragma warning(disable : 6387)
-bool LanClient::ConnectPost(Session* pSession)
+bool LanClient::ConnectPost(LanClientSession* pSession)
 {
 	ZeroMemory(&pSession->connectOverlapped.overlapped, sizeof(WSAOVERLAPPED));
 	pSession->connectOverlapped.why = OVERLAPPED_REASON::CONNECT;
@@ -254,7 +259,7 @@ bool LanClient::ConnectPost(Session* pSession)
 }
 #pragma warning(default : 6387)
 
-bool LanClient::DisconnectExPost(Session* pSession)
+bool LanClient::DisconnectExPost(LanClientSession* pSession)
 {
 	ZeroMemory(&(pSession->disconnectOverlapped.overlapped), sizeof(WSAOVERLAPPED));
 	pSession->disconnectOverlapped.why = OVERLAPPED_REASON::DISCONNECT;
@@ -272,7 +277,7 @@ bool LanClient::DisconnectExPost(Session* pSession)
 	return true;
 }
 
-BOOL LanClient::SendPost(Session* pSession)
+BOOL LanClient::SendPost(LanClientSession* pSession)
 {
 	if (pSession->bDisconnectCalled_ == TRUE)
 		return TRUE;
@@ -333,7 +338,7 @@ BOOL LanClient::SendPost(Session* pSession)
 	return TRUE;
 }
 
-BOOL LanClient::RecvPost(Session* pSession)
+BOOL LanClient::RecvPost(LanClientSession* pSession)
 {
 	if (pSession->bDisconnectCalled_ == TRUE)
 		return FALSE;
@@ -372,15 +377,15 @@ BOOL LanClient::RecvPost(Session* pSession)
 	return TRUE;
 }
 
-void LanClient::ReleaseSession(Session* pSession)
+void LanClient::ReleaseSession(LanClientSession* pSession)
 {
-	if (InterlockedCompareExchange(&pSession->IoCnt_, Session::RELEASE_FLAG | 0, 0) != 0)
+	if (InterlockedCompareExchange(&pSession->IoCnt_, LanClientSession::RELEASE_FLAG | 0, 0) != 0)
 		return;
 
 	DisconnectExPost(pSession);
 }
 
-void LanClient::RecvProc(Session* pSession, int numberOfBytesTransferred)
+void LanClient::RecvProc(LanClientSession* pSession, int numberOfBytesTransferred)
 {
 	using LanHeader = Packet::LanHeader;
 	pSession->recvRB_.MoveInPos(numberOfBytesTransferred);
@@ -412,7 +417,7 @@ void LanClient::RecvProc(Session* pSession, int numberOfBytesTransferred)
 	RecvPost(pSession);
 }
 
-void LanClient::SendProc(Session* pSession, DWORD dwNumberOfBytesTransferred)
+void LanClient::SendProc(LanClientSession* pSession, DWORD dwNumberOfBytesTransferred)
 {
 	if (pSession->bDisconnectCalled_ == TRUE)
 		return;
@@ -431,10 +436,10 @@ void LanClient::SendProc(Session* pSession, DWORD dwNumberOfBytesTransferred)
 		SendPost(pSession);
 }
 
-void LanClient::ConnectProc(Session* pSession)
+void LanClient::ConnectProc(LanClientSession* pSession)
 {
 	InterlockedIncrement(&pSession->IoCnt_);
-	InterlockedAnd(&pSession->IoCnt_, ~Session::RELEASE_FLAG);
+	InterlockedAnd(&pSession->IoCnt_, ~LanClientSession::RELEASE_FLAG);
 
 	setsockopt(pSession->sock_, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
 	//SetZeroCopy(pSession->sock_);
@@ -447,7 +452,7 @@ void LanClient::ConnectProc(Session* pSession)
 	RecvPost(pSession);
 }
 
-void LanClient::DisconnectProc(Session* pSession)
+void LanClient::DisconnectProc(LanClientSession* pSession)
 {
 	// Release 될 Session의 직렬화 버퍼 정리
 	for (LONG i = 0; i < pSession->lSendBufNum_; ++i)
@@ -487,7 +492,7 @@ unsigned __stdcall LanClient::IOCPWorkerThread(LPVOID arg)
 	{
 		MYOVERLAPPED* pOverlapped = nullptr;
 		DWORD dwNOBT = 0;
-		Session* pSession = nullptr;
+		LanClientSession* pSession = nullptr;
 		bool bContinue = false;
 		bool bConnectSuccess = true;
 		BOOL bGQCSRet = GetQueuedCompletionStatus(pLanClient->hcp_, &dwNOBT, (PULONG_PTR)&pSession, (LPOVERLAPPED*)&pOverlapped, INFINITE);
@@ -529,8 +534,25 @@ unsigned __stdcall LanClient::IOCPWorkerThread(LPVOID arg)
 					pLanClient->RecvProc(pSession, dwNOBT);
 				}
 				break;
+
+			case OVERLAPPED_REASON::TIMEOUT:
+				break;
+
+			case OVERLAPPED_REASON::SEND_POST_FRAME:
+				break;
+
+			case OVERLAPPED_REASON::SEND_ACCUM:
+				break;
+
+			case OVERLAPPED_REASON::UPDATE:
+				break;
+
 			case OVERLAPPED_REASON::POST:
 				break;
+
+			case OVERLAPPED_REASON::SEND_WORKER:
+				break;
+
 			case OVERLAPPED_REASON::CONNECT:
 				pLanClient->ConnectProc(pSession);
 				break;
